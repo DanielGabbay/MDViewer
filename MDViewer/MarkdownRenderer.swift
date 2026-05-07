@@ -5,25 +5,37 @@ struct MarkdownRenderer {
 
     // MARK: - RTL Detection
 
+    /// Returns the direction of a single line based on its first strong directional character.
+    private static func lineDirection(_ line: String) -> String? {
+        for scalar in line.unicodeScalars {
+            let v = scalar.value
+            // Hebrew or Arabic → RTL
+            if (0x0590...0x05FF).contains(v) ||
+               (0xFB1D...0xFB4F).contains(v) ||
+               (0x0600...0x06FF).contains(v) {
+                return "rtl"
+            }
+            // Basic Latin letters → LTR
+            if (0x0041...0x005A).contains(v) || (0x0061...0x007A).contains(v) {
+                return "ltr"
+            }
+        }
+        return nil // neutral line (digits, punctuation, empty)
+    }
+
+    /// Detects the dominant direction of a multi-line text by voting per line.
     static func detectDirection(_ text: String) -> String {
-        let hebrewRange = text.unicodeScalars.filter { scalar in
-            (0x0590...0x05FF).contains(scalar.value) || // Hebrew
-            (0xFB1D...0xFB4F).contains(scalar.value)    // Hebrew Presentation Forms
+        var rtlLines = 0
+        var ltrLines = 0
+        for line in text.components(separatedBy: "\n") {
+            switch lineDirection(line) {
+            case "rtl": rtlLines += 1
+            case "ltr": ltrLines += 1
+            default: break
+            }
         }
-        let arabicRange = text.unicodeScalars.filter { scalar in
-            (0x0600...0x06FF).contains(scalar.value)
-        }
-        let latinRange = text.unicodeScalars.filter { scalar in
-            (0x0041...0x007A).contains(scalar.value)
-        }
-
-        let rtlCount = hebrewRange.count + arabicRange.count
-        let ltrCount = latinRange.count
-
-        if rtlCount == 0 { return "ltr" }
-        if ltrCount == 0 { return "rtl" }
-        // Mixed: majority wins, default rtl for Hebrew-heavy
-        return rtlCount >= ltrCount ? "rtl" : "ltr"
+        if rtlLines == 0 && ltrLines == 0 { return "ltr" }
+        return rtlLines >= ltrLines ? "rtl" : "ltr"
     }
 
     // MARK: - Main Render
