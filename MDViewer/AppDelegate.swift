@@ -9,6 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let hotkeyManager = HotkeyManager()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        // Apply dock visibility preference
+        applyDockVisibility(PreferencesManager.shared.showInDock)
+
         // Menubar icon
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         if let button = statusItem.button {
@@ -119,5 +122,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         settingsWindowController?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applyDockVisibility(_ show: Bool) {
+        NSApp.setActivationPolicy(show ? .regular : .accessory)
+    }
+
+    func setShowInDock(_ show: Bool) {
+        PreferencesManager.shared.showInDock = show
+        applyDockVisibility(show)
     }
 }

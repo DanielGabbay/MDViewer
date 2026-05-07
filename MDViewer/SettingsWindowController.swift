@@ -84,6 +84,14 @@ class SettingsWindowController: NSWindowController {
         )
         stack.addArrangedSubview(mdOnlyCheck)
 
+        // Show in Dock
+        let dockCheck = makeCheckbox(
+            title: L(.showInDock),
+            isOn: prefs.showInDock,
+            action: #selector(toggleShowInDock)
+        )
+        stack.addArrangedSubview(dockCheck)
+
         stack.addArrangedSubview(makeSeparator())
 
         // Hotkey row
@@ -181,6 +189,10 @@ class SettingsWindowController: NSWindowController {
 
     @objc func toggleMarkdownOnly(_ sender: NSButton) {
         PreferencesManager.shared.showOnlyMarkdown = sender.state == .on
+    }
+
+    @objc func toggleShowInDock(_ sender: NSButton) {
+        (NSApp.delegate as? AppDelegate)?.setShowInDock(sender.state == .on)
     }
 
     @objc func opacityChanged(_ sender: NSSlider) {

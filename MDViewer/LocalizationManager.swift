@@ -47,9 +47,10 @@ enum StringKey {
     case showOnlyMarkdown
     case keyboard
     case opacity
-    case language
-    case soon
-    case versionLine
+        case language
+        case soon
+        case versionLine
+        case showInDock
 
     // Toolbar / main window
     case appName
@@ -95,6 +96,9 @@ enum StringKey {
 
         case (.versionLine, .hebrew):           return "MD Viewer v1.0  •  Daniel Gabbay  •  2025"
         case (.versionLine, .english):          return "MD Viewer v1.0  •  Daniel Gabbay  •  2025"
+
+        case (.showInDock, .hebrew):            return "הצג בDock"
+        case (.showInDock, .english):           return "Show in Dock"
 
         // ── Main window ───────────────────────────────────────────────────────
         case (.appName, _):                     return "MD Viewer"

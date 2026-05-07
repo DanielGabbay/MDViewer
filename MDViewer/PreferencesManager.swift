@@ -14,6 +14,7 @@ class PreferencesManager {
         static let showOnlyMarkdown = "showOnlyMarkdown"
         static let windowOpacity = "windowOpacity"
         static let language = "language"
+        static let showInDock = "showInDock"
     }
 
     var alwaysOnTop: Bool {
@@ -54,6 +55,11 @@ class PreferencesManager {
     var language: String {
         get { defaults.string(forKey: Keys.language) ?? "he" }
         set { defaults.set(newValue, forKey: Keys.language) }
+    }
+
+    var showInDock: Bool {
+        get { defaults.object(forKey: Keys.showInDock) as? Bool ?? false }
+        set { defaults.set(newValue, forKey: Keys.showInDock) }
     }
 
     // Hotkey: default Cmd+Shift+M
