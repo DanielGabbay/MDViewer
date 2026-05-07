@@ -36,10 +36,13 @@ jobs:
             -exportPath "$RUNNER_TEMP/export" \
             -exportOptionsPlist ExportOptions.plist
 
-      - name: Zip App
+      - name: Package Release
         run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          cp -R "$RUNNER_TEMP/export/MDViewer.app" "$RUNNER_TEMP/release/"
+          cp install.sh "$RUNNER_TEMP/release/"
           ditto -c -k --keepParent \
-            "$RUNNER_TEMP/export/MDViewer.app" \
+            "$RUNNER_TEMP/release" \
             "$RUNNER_TEMP/MDViewer.zip"
 
       - name: Get Tag Name
