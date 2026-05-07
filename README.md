@@ -26,9 +26,24 @@ A lightweight macOS menubar app that monitors your clipboard and instantly rende
 
 ## Installation
 
+### Option A — Download (recommended)
+
+1. Go to the [Releases page](https://github.com/DanielGabbay/MDViewer/releases) and download the latest `MDViewer.zip`.
+2. Extract the zip — you'll find `MDViewer.app` and `install.sh`.
+3. Run the installer:
+   ```bash
+   bash install.sh
+   ```
+   This copies the app to `/Applications` and removes the macOS quarantine flag so it launches without security warnings.
+4. Open `/Applications/MDViewer.app`.
+
+> **Alternatively**, drag `MDViewer.app` to `/Applications` manually, then on first launch right-click > **Open** and confirm.
+
+### Option B — Build from source
+
 1. Clone the repository:
    ```
-   git clone https://github.com/your-username/MDViewer.git
+   git clone https://github.com/DanielGabbay/MDViewer.git
    ```
 2. Open `MDViewer.xcodeproj` in Xcode.
 3. Select your development team in *Signing & Capabilities*.
