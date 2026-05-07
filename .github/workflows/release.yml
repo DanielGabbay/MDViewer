@@ -1,0 +1,65 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-and-release:
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Build Release
+        run: |
+          xcodebuild \
+            -project MDViewer.xcodeproj \
+            -scheme MDViewer \
+            -configuration Release \
+            -archivePath "$RUNNER_TEMP/MDViewer.xcarchive" \
+            archive \
+            CODE_SIGN_IDENTITY="" \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Export App
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$RUNNER_TEMP/MDViewer.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist ExportOptions.plist
+
+      - name: Zip App
+        run: |
+          ditto -c -k --keepParent \
+            "$RUNNER_TEMP/export/MDViewer.app" \
+            "$RUNNER_TEMP/MDViewer.zip"
+
+      - name: Get Tag Name
+        id: tag
+        run: echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag.outputs.tag }}
+          name: MDViewer ${{ steps.tag.outputs.tag }}
+          files: ${{ runner.temp }}/MDViewer.zip
+          body: |
+            ## MDViewer ${{ steps.tag.outputs.tag }}
+
+            ### Installation
+            1. Download `MDViewer.zip` below
+            2. Extract and drag `MDViewer.app` to `/Applications`
+            3. Launch — the menubar icon will appear
+            4. Copy any Markdown text to the clipboard to preview it
+
+            ### Requirements
+            - macOS 13 Ventura or later
