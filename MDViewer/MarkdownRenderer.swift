@@ -3,64 +3,56 @@ import AppKit
 
 struct MarkdownRenderer {
 
-    // MARK: - RTL Detection
-
-    /// Returns the direction of a single line based on its first strong directional character.
-    private static func lineDirection(_ line: String) -> String? {
-        for scalar in line.unicodeScalars {
-            let v = scalar.value
-            // Hebrew or Arabic → RTL
-            if (0x0590...0x05FF).contains(v) ||
-               (0xFB1D...0xFB4F).contains(v) ||
-               (0x0600...0x06FF).contains(v) {
-                return "rtl"
-            }
-            // Basic Latin letters → LTR
-            if (0x0041...0x005A).contains(v) || (0x0061...0x007A).contains(v) {
-                return "ltr"
-            }
-        }
-        return nil // neutral line (digits, punctuation, empty)
-    }
-
-    /// Detects the dominant direction of a multi-line text.
-    /// A single RTL line is enough to classify the document as RTL,
-    /// because Hebrew/Arabic documents commonly contain English words,
-    /// URLs, and code snippets that would otherwise skew a line count.
-    static func detectDirection(_ text: String) -> String {
-        for line in text.components(separatedBy: "\n") {
-            if lineDirection(line) == "rtl" { return "rtl" }
-        }
-        return "ltr"
-    }
-
     // MARK: - Main Render
 
     static func render(_ markdown: String) -> String {
-        let dir = detectDirection(markdown)
         let isMarkdown = ClipboardMonitor.isLikelyMarkdown(markdown)
-        let bodyContent = isMarkdown ? convertMarkdownToHTML(markdown) : "<pre class=\"plain\">\(escapeHTML(markdown))</pre>"
+        // For plain text (non-markdown), detect direction once at document level
+        // so the pre block is rendered correctly. For markdown, each block uses dir="auto".
+        let plainDir: String
+        if !isMarkdown {
+            plainDir = detectDocumentDirection(markdown)
+        } else {
+            plainDir = "ltr" // unused for markdown path
+        }
+        let bodyContent = isMarkdown ? convertMarkdownToHTML(markdown) : "<pre class=\"plain\" dir=\"\(plainDir)\">\(escapeHTML(markdown))</pre>"
         let badge = isMarkdown ? "<span class=\"badge md\">MD</span>" : "<span class=\"badge plain\">Plain</span>"
-        let dirBadge = "<span class=\"badge dir\">\(dir.uppercased())</span>"
 
         return """
         <!DOCTYPE html>
-        <html dir="\(dir)" lang="auto">
+        <html lang="auto">
         <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-        \(css(dir: dir))
+        \(css())
         </style>
         </head>
         <body>
-        <div class="badges">\(badge) \(dirBadge)</div>
-        <div class="content" dir="\(dir)">
+        <div class="badges">\(badge)</div>
+        <div class="content">
         \(bodyContent)
         </div>
         </body>
         </html>
         """
+    }
+
+    // MARK: - Document-level direction (used only for plain text)
+
+    /// First-strong heuristic per Unicode UBA P2/P3:
+    /// scan characters in order, return direction of first strong directional character.
+    private static func detectDocumentDirection(_ text: String) -> String {
+        for scalar in text.unicodeScalars {
+            let v = scalar.value
+            // Strong RTL: Hebrew, Hebrew Extended, Arabic
+            if (0x0590...0x05FF).contains(v) ||
+               (0xFB1D...0xFB4F).contains(v) ||
+               (0x0600...0x06FF).contains(v) { return "rtl" }
+            // Strong LTR: Basic Latin letters
+            if (0x0041...0x005A).contains(v) || (0x0061...0x007A).contains(v) { return "ltr" }
+        }
+        return "ltr"
     }
 
     static func renderEmpty() -> String {
@@ -71,7 +63,7 @@ struct MarkdownRenderer {
         <head>
         <meta charset="UTF-8">
         <style>
-        \(css(dir: "ltr"))
+        \(css())
         </style>
         </head>
         <body>
@@ -99,16 +91,16 @@ struct MarkdownRenderer {
 
         func flushList() {
             if !listItems.isEmpty {
-                html += "<ul>\n"
-                for item in listItems { html += "<li>\(inlineFormat(item))</li>\n" }
+                html += "<ul dir=\"auto\">\n"
+                for item in listItems { html += "<li dir=\"auto\">\(inlineFormat(item))</li>\n" }
                 html += "</ul>\n"
                 listItems.removeAll()
             }
         }
         func flushOrdered() {
             if !orderedItems.isEmpty {
-                html += "<ol>\n"
-                for item in orderedItems { html += "<li>\(inlineFormat(item))</li>\n" }
+                html += "<ol dir=\"auto\">\n"
+                for item in orderedItems { html += "<li dir=\"auto\">\(inlineFormat(item))</li>\n" }
                 html += "</ol>\n"
                 orderedItems.removeAll()
             }
@@ -121,12 +113,12 @@ struct MarkdownRenderer {
         }
         func flushTable() {
             guard !tableRows.isEmpty else { return }
-            html += "<table>\n"
+            html += "<table dir=\"auto\">\n"
             let isHeader = tableRows.count > 1 && tableRows[1].allSatisfy({ $0.trimmingCharacters(in: .whitespaces).allSatisfy({ $0 == "-" || $0 == "|" || $0 == ":" || $0 == " " }) })
             for (i, row) in tableRows.enumerated() {
                 if isHeader && i == 1 { continue }
                 let tag = (isHeader && i == 0) ? "th" : "td"
-                html += "<tr>" + row.map { "<\(tag)>\(inlineFormat($0))</\(tag)>" }.joined() + "</tr>\n"
+                html += "<tr>" + row.map { "<\(tag) dir=\"auto\">\(inlineFormat($0))</\(tag)>" }.joined() + "</tr>\n"
             }
             html += "</table>\n"
             tableRows.removeAll()
@@ -173,14 +165,14 @@ struct MarkdownRenderer {
                 flushList(); flushOrdered(); flushBlockquote(); flushTable()
                 let level = line[m].prefix(while: { $0 == "#" }).count
                 let text = line.replacingOccurrences(of: #"^#{1,6}\s+"#, with: "", options: .regularExpression)
-                html += "<h\(level)>\(inlineFormat(text))</h\(level)>\n"; continue
+                html += "<h\(level) dir=\"auto\">\(inlineFormat(text))</h\(level)>\n"; continue
             }
 
             // Blockquote
             if line.hasPrefix("> ") {
                 flushList(); flushOrdered(); flushTable()
-                if !inBlockquote { html += "<blockquote>\n"; inBlockquote = true }
-                html += "<p>\(inlineFormat(String(line.dropFirst(2))))</p>\n"; continue
+                if !inBlockquote { html += "<blockquote dir=\"auto\">\n"; inBlockquote = true }
+                html += "<p dir=\"auto\">\(inlineFormat(String(line.dropFirst(2))))</p>\n"; continue
             } else { flushBlockquote() }
 
             // Unordered list
@@ -203,7 +195,7 @@ struct MarkdownRenderer {
             }
 
             // Paragraph
-            html += "<p>\(inlineFormat(line))</p>\n"
+            html += "<p dir=\"auto\">\(inlineFormat(line))</p>\n"
         }
 
         flushList(); flushOrdered(); flushBlockquote(); flushTable()
@@ -245,7 +237,7 @@ struct MarkdownRenderer {
 
     // MARK: - CSS
 
-    static func css(dir: String) -> String {
+    static func css() -> String {
         let isDark = NSApp.effectiveAppearance.name == .darkAqua ||
                      NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
 
@@ -292,11 +284,8 @@ struct MarkdownRenderer {
         }
         .badge.md { background: \(badgeMdBg); color: \(badgeMdFg); }
         .badge.plain { background: \(badgePlainBg); color: \(badgePlainFg); }
-        .badge.dir { background: \(badgePlainBg); color: \(badgePlainFg); }
         .content {
             padding: 14px 16px;
-            direction: \(dir);
-            text-align: \(dir == "rtl" ? "right" : "left");
         }
         h1, h2, h3, h4, h5, h6 {
             margin: 0.8em 0 0.4em;
@@ -337,16 +326,14 @@ struct MarkdownRenderer {
             color: \(fg);
             white-space: pre-wrap;
             word-break: break-word;
-            direction: \(dir);
-            text-align: \(dir == "rtl" ? "right" : "left");
         }
         ul, ol {
-            padding-\(dir == "rtl" ? "right" : "left"): 1.5em;
+            padding-left: 1.5em;
             margin: 0.5em 0;
         }
         li { margin: 0.2em 0; }
         blockquote {
-            border-\(dir == "rtl" ? "right" : "left"): 3px solid \(blockquoteBorder);
+            border-left: 3px solid \(blockquoteBorder);
             background: \(blockquoteBg);
             padding: 8px 14px;
             margin: 0.8em 0;
@@ -368,7 +355,7 @@ struct MarkdownRenderer {
         th, td {
             border: 1px solid \(borderColor);
             padding: 6px 10px;
-            text-align: \(dir == "rtl" ? "right" : "left");
+            text-align: inherit;
         }
         th {
             background: \(codeBg);
