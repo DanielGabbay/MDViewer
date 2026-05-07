@@ -33,12 +33,13 @@ class SettingsWindowController: NSWindowController {
     private func setupContent() {
         guard let contentView = window?.contentView else { return }
         let prefs = PreferencesManager.shared
+        let isRTL = LocalizationManager.shared.language == .hebrew
 
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
-        stack.alignment = .leading
+        stack.alignment = isRTL ? .trailing : .leading
         contentView.addSubview(stack)
 
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -52,6 +53,7 @@ class SettingsWindowController: NSWindowController {
         // Title
         let titleLabel = NSTextField(labelWithString: L(.settingsTitle))
         titleLabel.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+        titleLabel.alignment = isRTL ? .right : .left
         stack.addArrangedSubview(titleLabel)
 
         stack.addArrangedSubview(makeSeparator())
@@ -124,6 +126,7 @@ class SettingsWindowController: NSWindowController {
         let version = NSTextField(labelWithString: L(.versionLine))
         version.font = NSFont.systemFont(ofSize: 11)
         version.textColor = .tertiaryLabelColor
+        version.alignment = isRTL ? .right : .left
         stack.addArrangedSubview(version)
     }
 
@@ -141,13 +144,18 @@ class SettingsWindowController: NSWindowController {
         return sep
     }
 
-    /// Creates a horizontal stack with a right-aligned label of fixed width
+    /// Creates a horizontal stack with a label of fixed width, direction-aware.
     private func makeRow(label: String) -> NSStackView {
+        let isRTL = LocalizationManager.shared.language == .hebrew
         let row = NSStackView()
         row.orientation = .horizontal
         row.spacing = 8
+        if isRTL {
+            row.userInterfaceLayoutDirection = .rightToLeft
+        }
         let lbl = NSTextField(labelWithString: label)
         lbl.font = NSFont.systemFont(ofSize: 13)
+        lbl.alignment = isRTL ? .right : .left
         lbl.widthAnchor.constraint(equalToConstant: 130).isActive = true
         row.addArrangedSubview(lbl)
         return row
