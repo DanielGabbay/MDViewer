@@ -23,19 +23,15 @@ struct MarkdownRenderer {
         return nil // neutral line (digits, punctuation, empty)
     }
 
-    /// Detects the dominant direction of a multi-line text by voting per line.
+    /// Detects the dominant direction of a multi-line text.
+    /// A single RTL line is enough to classify the document as RTL,
+    /// because Hebrew/Arabic documents commonly contain English words,
+    /// URLs, and code snippets that would otherwise skew a line count.
     static func detectDirection(_ text: String) -> String {
-        var rtlLines = 0
-        var ltrLines = 0
         for line in text.components(separatedBy: "\n") {
-            switch lineDirection(line) {
-            case "rtl": rtlLines += 1
-            case "ltr": ltrLines += 1
-            default: break
-            }
+            if lineDirection(line) == "rtl" { return "rtl" }
         }
-        if rtlLines == 0 && ltrLines == 0 { return "ltr" }
-        return rtlLines >= ltrLines ? "rtl" : "ltr"
+        return "ltr"
     }
 
     // MARK: - Main Render
