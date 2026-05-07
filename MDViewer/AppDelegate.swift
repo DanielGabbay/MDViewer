@@ -111,6 +111,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if settingsWindowController == nil {
             settingsWindowController = SettingsWindowController()
         }
+        // Ensure Settings appears above the floating panel
+        if let fw = floatingWindowController?.window, fw.level == .floating {
+            settingsWindowController?.window?.level = .floating
+        } else {
+            settingsWindowController?.window?.level = .normal
+        }
         settingsWindowController?.showWindow(nil)
         NSApp.activate(ignoringOtherApps: true)
     }

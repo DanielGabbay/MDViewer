@@ -39,7 +39,10 @@ class SettingsWindowController: NSWindowController {
         stack.orientation = .vertical
         stack.spacing = 16
         stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
-        stack.alignment = isRTL ? .trailing : .leading
+        stack.alignment = .leading
+        if isRTL {
+            stack.userInterfaceLayoutDirection = .rightToLeft
+        }
         contentView.addSubview(stack)
 
         stack.translatesAutoresizingMaskIntoConstraints = false
@@ -169,9 +172,12 @@ class SettingsWindowController: NSWindowController {
     }
 
     @objc func toggleAlwaysOnTop(_ sender: NSButton) {
-        PreferencesManager.shared.alwaysOnTop = sender.state == .on
-        (NSApp.delegate as? AppDelegate)?.floatingWindowController?.window?.level =
-            PreferencesManager.shared.alwaysOnTop ? .floating : .normal
+        let isOn = sender.state == .on
+        PreferencesManager.shared.alwaysOnTop = isOn
+        let newLevel: NSWindow.Level = isOn ? .floating : .normal
+        (NSApp.delegate as? AppDelegate)?.floatingWindowController?.window?.level = newLevel
+        // Keep Settings above the floating panel
+        window?.level = newLevel
     }
 
     @objc func toggleMarkdownOnly(_ sender: NSButton) {
