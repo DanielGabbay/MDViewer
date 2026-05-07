@@ -35,14 +35,13 @@ class SettingsWindowController: NSWindowController {
         let prefs = PreferencesManager.shared
         let isRTL = LocalizationManager.shared.language == .hebrew
 
+
         let stack = NSStackView()
         stack.orientation = .vertical
         stack.spacing = 16
-        stack.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
+        stack.edgeInsets = isRTL ? NSEdgeInsets(top: 24, left: 24, bottom: 24, right: -24) : NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
         stack.alignment = .leading
-        if isRTL {
-            stack.userInterfaceLayoutDirection = .rightToLeft
-        }
+        stack.userInterfaceLayoutDirection = isRTL ? .rightToLeft : .leftToRight
         contentView.addSubview(stack)
 
         stack.translatesAutoresizingMaskIntoConstraints = false
